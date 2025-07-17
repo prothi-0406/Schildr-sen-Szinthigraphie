@@ -1,6 +1,7 @@
 # Schildr-sen-Szinthigraphie
 import streamlit as st 
 import numpy as np 
+import matplotlib.pyplot as plt
 import time 
 
 st.set_page_config(page_title="Schilddrüsenszintigraphie-Simulation", layout="wide") 
