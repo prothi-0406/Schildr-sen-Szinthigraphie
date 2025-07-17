@@ -10,8 +10,7 @@ Diese interaktive Simulation zeigt die physikalischen Abläufe einer
 Schilddrüsenszintigraphie: - **Aufnahme des Radiopharmakons** - **Radioaktiver Zerfall und Gamma-Emission** - **Bildentstehung durch eine Gamma-Kamera** 
 """) 
 # Auswahl des Radiopharmakons 
-pharmakon = st.selectbox("Radiopharmakon auswählen:", ["Technetium-99m", "Jod
-123"]) 
+pharmakon = st.selectbox("Radiopharmakon auswählen:", ["Technetium-99m", "Jod123"]) 
 halbwertszeit = {"Technetium-99m": 6.01, "Jod-123": 13.2}[pharmakon] 
 st.write(f"Halbwertszeit von **{pharmakon}**: {halbwertszeit} Stunden") 
 # Zerfallskurve 
@@ -19,8 +18,8 @@ st.subheader("Zerfall des Radiopharmakons")
 t = np.linspace(0, 24, 100) 
 NO = 1000 
 N = NO * np.exp(-np.log(2) * t / halbwertszeit) 
-f
- ig1, ax1 = plt.subplots() 
+
+ fig1, ax1 = plt.subplots() 
 ax1.plot(t, N, label="Anzahl radioaktiver Atome") 
 ax1.set_xlabel("Zeit (h)") 
 ax1.set_ylabel("Restaktivität") 
