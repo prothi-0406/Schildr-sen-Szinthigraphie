@@ -78,5 +78,4 @@ if st.button(" Emissionen starten"):
     plot_placeholder.pyplot(emission_fig) 
  
 st.markdown("---") 
-st.info("Diese Simulation dient der Lehre und veranschaulicht vereinfacht die Abläufe 
-einer Schilddrüsenszintigraphie.")
+st.info("Diese Simulation dient der Lehre und veranschaulicht vereinfacht die Abläufe einer Schilddrüsenszintigraphie.")
