@@ -1,21 +1,11 @@
 # Schilddrüsenszintigraphie – Finalversion
-import streamlit as st
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import time
-from PIL import Image
-
-# Streamlit-Konfiguration
-st.set_page_config(page_title="Schilddrüsenszintigraphie-Simulation", layout="wide")
-st.title("🧪 Schilddrüsenszintigraphie – Physikalische Prozesse (Simulation)")
 
 st.markdown("""
 Diese interaktive Simulation zeigt die grundlegenden physikalischen Abläufe einer Schilddrüsenszintigraphie:
 
 - 💊 **Aufnahme des Radiopharmakons**
 - 🧬 **Radioaktiver Zerfall**
-- 📸 **Bildentstehung in der Gamma-Kamera**
+- 📸 **Bildentstehung durch Gamma-Kamera**
 """)
 
 # Radiopharmakon-Auswahl
@@ -39,7 +29,7 @@ ax1.grid(True)
 ax1.legend()
 st.pyplot(fig1)
 
-# Schilddrüsengewebe – Pathologie-Auswahl
+# Pathologie-Auswahl
 st.subheader("🧠 Pathologisches Muster auswählen")
 pathologie = st.selectbox("Pathologischer Zustand:", [
     "Normale Schilddrüse",
@@ -48,7 +38,7 @@ pathologie = st.selectbox("Pathologischer Zustand:", [
     "M. Basedow (diffus heiß)"
 ])
 
-# Schilddrüsenform & Aktivität
+# Schilddrüsenform und Aktivität
 size = 100
 X, Y = np.meshgrid(np.linspace(-1, 1, size), np.linspace(-1, 1, size))
 ellipse_mask = ((X**2)/(0.7**2) + (Y**2)/(0.4**2)) < 1
@@ -56,7 +46,6 @@ ellipse_mask = ((X**2)/(0.7**2) + (Y**2)/(0.4**2)) < 1
 activity = np.zeros((size, size))
 activity[ellipse_mask] = np.random.normal(loc=20, scale=4, size=np.sum(ellipse_mask))
 
-# Pathologie anwenden
 if pathologie == "Autonomes Adenom (heißer Knoten)":
     activity[45:55, 40:60] += 80
 elif pathologie == "Kalter Knoten":
@@ -66,7 +55,7 @@ elif pathologie == "M. Basedow (diffus heiß)":
 
 activity = np.clip(activity, 0, None)
 
-# Simulierte Detektion (Szintigramm)
+# Szintigramm-Darstellung
 st.subheader("📍 Simuliertes Szintigramm")
 
 detected = np.clip(activity + np.random.normal(0, 4, (size, size)), 0, None)
@@ -78,40 +67,82 @@ ax2.set_title(f"Simuliertes Szintigramm – {pathologie}")
 ax2.axis("off")
 st.pyplot(fig2)
 
-# Gamma-Emission mit Farblegende
-st.subheader("💥 Gamma-Emissionen mit Farbbedeutung")
+# Gamma-Emission mit Punkten + Rahmenellipse
+st.subheader("💥 Gamma-Emissionen mit Punkt + Schilddrüsenrahmen")
 
 if st.button("Emissionen anzeigen"):
     emission_fig, emission_ax = plt.subplots()
     emission_ax.set_xlim(0, size)
     emission_ax.set_ylim(0, size)
-    emission_ax.set_title("Simulierte Gamma-Emissionen")
+    emission_ax.set_title("Simulierte Gamma-Emissionen (farbige Punkte mit Ellipsen-Rahmen)")
     emission_ax.axis("off")
     plot_placeholder = st.empty()
 
-    for i in range(200):
+    xs = []
+    ys = []
+    colors = []
+
+    for i in range(300):
         x, y = np.random.randint(0, size, 2)
         if ellipse_mask[x, y] and np.random.rand() < activity[x, y] / np.max(activity):
             val = activity[x, y]
             norm_val = val / np.max(activity)
 
             if norm_val > 0.8:
-                color = 'red'      # heiß
+                color = 'red'
             elif norm_val > 0.4:
-                color = 'orange'   # mittel
+                color = 'orange'
             else:
-                color = 'blue'     # kalt
+                color = 'blue'
 
-            circ = patches.Circle((y, x), radius=1.5, edgecolor=color, facecolor='none', linewidth=1)
-            emission_ax.add_patch(circ)
+            xs.append(y)
+            ys.append(x)
+            colors.append(color)
 
-        if i % 5 == 0:
+        if i % 10 == 0:
+            emission_ax.clear()
+            emission_ax.set_xlim(0, size)
+            emission_ax.set_ylim(0, size)
+            emission_ax.axis("off")
+            emission_ax.set_title("Simulierte Gamma-Emissionen")
+            emission_ax.scatter(xs, ys, color=colors, s=10, alpha=0.8)
+
+            ellipse = patches.Ellipse(
+                (size / 2, size / 2),
+                width=0.7 * size * 2,
+                height=0.4 * size * 2,
+                edgecolor='black',
+                facecolor='none',
+                linewidth=1.5,
+                linestyle='--'
+            )
+            emission_ax.add_patch(ellipse)
+
             plot_placeholder.pyplot(emission_fig)
-        time.sleep(0.01)
+            time.sleep(0.01)
+
+    # Finales Bild
+    emission_ax.clear()
+    emission_ax.set_xlim(0, size)
+    emission_ax.set_ylim(0, size)
+    emission_ax.axis("off")
+    emission_ax.set_title("Simulierte Gamma-Emissionen – final")
+    emission_ax.scatter(xs, ys, color=colors, s=10, alpha=0.8)
+
+    ellipse = patches.Ellipse(
+        (size / 2, size / 2),
+        width=0.7 * size * 2,
+        height=0.4 * size * 2,
+        edgecolor='black',
+        facecolor='none',
+        linewidth=1.5,
+        linestyle='--'
+    )
+    emission_ax.add_patch(ellipse)
 
     plot_placeholder.pyplot(emission_fig)
 
-    # 🔍 LEGENDE
+    # Farblegende
     st.markdown("**🔎 Legende der Emissionsfarben:**")
     col1, col2, col3 = st.columns(3)
     with col1:
