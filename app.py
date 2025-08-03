@@ -1,5 +1,16 @@
 # Schilddrüsenszintigraphie – Finalversion
 
+import streamlit as st
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import time
+from PIL import Image
+
+# App-Konfiguration
+st.set_page_config(page_title="Schilddrüsenszintigraphie-Simulation", layout="wide")
+st.title("🧪 Schilddrüsenszintigraphie – Physikalische Prozesse (Simulation)")
+
 st.markdown("""
 Diese interaktive Simulation zeigt die grundlegenden physikalischen Abläufe einer Schilddrüsenszintigraphie:
 
