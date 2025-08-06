@@ -1,111 +1,148 @@
-# Schilddrüsen-Szintigraphie Simulation
+# Schilddrüsenszintigraphie – Überarbeitete Version nach Wunsch
+
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import time
+from PIL import Image
 
-# Seiteneinstellungen
-st.set_page_config(page_title="Schilddrüsen-Szintigraphie-Simulation", layout="wide")
-st.title("Schilddrüsen-Szintigraphie – Physikalische Prozesse (Simulation)")
+# App-Konfiguration
+st.set_page_config(page_title="Schilddrüsenszintigraphie-Simulation", layout="wide")
+st.title("🧪 Schilddrüsenszintigraphie – Physikalische Prozesse (Simulation)")
 
 st.markdown("""
-Diese interaktive Simulation zeigt die physikalischen Abläufe einer Schilddrüsen-Szintigraphie:
-- **Aufnahme des Radiopharmakons**
-- **Radioaktiver Zerfall und Gamma-Emission**
-- **Bildentstehung durch eine Gamma-Kamera**
+Diese interaktive Simulation zeigt die grundlegenden physikalischen Abläufe einer Schilddrüsenszintigraphie:
+
+- 💊 **Aufnahme des Radiopharmakons**
+- 🧬 **Radioaktiver Zerfall**
+- 📸 **Bildentstehung durch Gamma-Kamera**
 """)
 
-# Auswahl Radiopharmakon
+# Radiopharmakon-Auswahl
 pharmakon = st.selectbox("Radiopharmakon auswählen:", ["Technetium-99m", "Jod-123"])
 halbwertszeit = {"Technetium-99m": 6.01, "Jod-123": 13.2}[pharmakon]
-st.write(f"Halbwertszeit von **{pharmakon}**: {halbwertszeit} Stunden")
+st.info(f"Halbwertszeit von **{pharmakon}**: **{halbwertszeit} Stunden**")
 
-# Auswahl Anfangsaktivität
-A0_MBq = st.slider("Anfangsaktivität auswählen (MBq):", 70, 150, 100, 10)
+# Zerfall in MBq
+st.subheader("🧬 Exponentieller Zerfall des Radiopharmakons")
+A0_MBq = st.slider("Anfangsaktivität (in MBq)", 70, 150, 100, step=10)
 A0_Bq = A0_MBq * 1e6
-
-# Zerfallskurve (in Bq)
-st.subheader("Zerfall des Radiopharmakons (Aktivität in Bq)")
-t = np.linspace(0, 24, 100)
-A = A0_Bq * np.exp(-np.log(2) * t / halbwertszeit)
+zeit = np.linspace(0, 24, 200)
+A = A0_Bq * np.exp(-np.log(2) * zeit / halbwertszeit)
 
 fig1, ax1 = plt.subplots()
-ax1.plot(t, A / 1e6, label="Aktivität")
-ax1.set_xlabel("Zeit (h)")
-ax1.set_ylabel("Aktivität (MBq)")
-ax1.set_title("Exponentieller Zerfall")
+ax1.plot(zeit, A / 1e6, color='darkred', label="Aktivität")
+ax1.set_xlabel("Zeit [h]")
+ax1.set_ylabel("Aktivität [MBq]")
+ax1.set_title("Zerfallskurve")
+ax1.set_ylim(0, 150)  # konstante y-Achse
 ax1.grid(True)
-ax1.set_ylim(0, 150)  # Skala konstant halten
+ax1.legend()
 st.pyplot(fig1)
 
 # Pathologie-Auswahl
-st.subheader("Verteilung im Schilddrüsengewebe")
-pathologie = st.selectbox("Pathologisches Muster auswählen:", ["Normal", "Autonomes Adenom", "Kalter Knoten", "Morbus Basedow"])
+st.subheader("🧠 Pathologisches Muster auswählen")
+pathologie = st.selectbox("Pathologischer Zustand:", [
+    "Normale Schilddrüse",
+    "Autonomes Adenom (heißer Knoten)",
+    "Kalter Knoten",
+    "M. Basedow (diffus heiß)"
+])
 
-# Schilddrüsengewebe initialisieren
+# Schilddrüsenform und Aktivitätsmatrix
 size = 100
-activity = np.random.normal(loc=20, scale=5, size=(size, size))
+X, Y = np.meshgrid(np.linspace(-1, 1, size), np.linspace(-1, 1, size))
+ellipse_mask = ((X**2)/(0.7**2) + (Y**2)/(0.4**2)) < 1
 
-# Pathologiespezifische Modifikationen
-if pathologie == "Autonomes Adenom":
-    activity[40:60, 40:60] += 100
+activity = np.zeros((size, size))
+activity[ellipse_mask] = np.random.normal(loc=20, scale=4, size=np.sum(ellipse_mask))
+
+if pathologie == "Autonomes Adenom (heißer Knoten)":
+    activity[45:55, 40:60] += 80
 elif pathologie == "Kalter Knoten":
-    xx, yy = np.meshgrid(np.arange(size), np.arange(size))
-    ellipse = ((xx - 75)**2) / (8**2) + ((yy - 25)**2) / (10**2) < 1
-    activity[ellipse] = np.random.normal(loc=2, scale=0.5, size=activity[ellipse].shape)
-elif pathologie == "Morbus Basedow":
-    activity += 40
+    activity[25:35, 65:75] = 0
+elif pathologie == "M. Basedow (diffus heiß)":
+    activity[ellipse_mask] += 30
 
-# Simulierte Detektion
-st.subheader("Simuliertes Szintigramm")
-detected = np.clip(activity + np.random.normal(0, 5, (size, size)), 0, None)
+activity = np.clip(activity, 0, None)
+
+# Szintigramm mit fester Farbskala
+st.subheader("📍 Simuliertes Szintigramm")
+detected = np.clip(activity + np.random.normal(0, 4, (size, size)), 0, None)
 
 fig2, ax2 = plt.subplots()
-im = ax2.imshow(detected, cmap="hot", interpolation="nearest", vmin=0, vmax=A0_MBq)
-plt.colorbar(im, ax=ax2, label="Detektierte Strahlung (rel. Einheiten)")
+im = ax2.imshow(detected, cmap="plasma", interpolation="nearest", vmin=0, vmax=120)
+plt.colorbar(im, ax=ax2, label="Detektierte Strahlung (a.u.)")
 ax2.set_title(f"Simuliertes Szintigramm – {pathologie}")
+ax2.axis("off")
 st.pyplot(fig2)
 
-# Animation: Gamma-Emissionen (vereinfacht)
-st.subheader("Animation: Gamma-Emissionen")
+# Gamma-Emission mit gleichfarbigen Punkten und kleinerer Ellipse
+st.subheader("💥 Simulierte Gamma-Emissionen (Punktverteilung)")
 
-if st.button("Emissionen starten"):
-    emission_fig, emission_ax = plt.subplots()
-    emission_ax.set_xlim(0, size)
-    emission_ax.set_ylim(0, size)
-    emission_ax.set_title("Simulierte Gamma-Emissionen (vereinfachte Darstellung)")
-    emission_ax.set_aspect('equal')
+if st.button("Emissionen anzeigen"):
+    fig3, ax3 = plt.subplots()
+    ax3.set_xlim(0, size)
+    ax3.set_ylim(0, size)
+    ax3.set_title("Simulierte Gamma-Emissionen")
+    ax3.axis("off")
+    placeholder = st.empty()
 
-    # Schilddrüsen-Ellipse zeichnen (kleiner)
-    ellipse_center = (size // 2, size // 2)
-    ellipse_width = 60
-    ellipse_height = 40
+    xs, ys = [], []
 
-    ellipse_patch = patches.Ellipse(
-        ellipse_center,
-        width=ellipse_width,
-        height=ellipse_height,
+    for i in range(500):
+        x, y = np.random.randint(0, size, 2)
+        if ellipse_mask[x, y] and np.random.rand() < activity[x, y] / np.max(activity):
+            xs.append(y)
+            ys.append(x)
+
+        if i % 20 == 0:
+            ax3.clear()
+            ax3.set_xlim(0, size)
+            ax3.set_ylim(0, size)
+            ax3.axis("off")
+            ax3.set_title("Simulierte Gamma-Emissionen")
+            ax3.scatter(xs, ys, color='deepskyblue', s=8, alpha=0.8)
+            ellipse = patches.Ellipse(
+                (size / 2, size / 2),
+                width=0.65 * size * 2,
+                height=0.35 * size * 2,
+                edgecolor='black',
+                facecolor='none',
+                linewidth=1.2,
+                linestyle='--'
+            )
+            ax3.add_patch(ellipse)
+            placeholder.pyplot(fig3)
+            time.sleep(0.01)
+
+    ax3.clear()
+    ax3.set_xlim(0, size)
+    ax3.set_ylim(0, size)
+    ax3.axis("off")
+    ax3.set_title("Simulierte Gamma-Emissionen – final")
+    ax3.scatter(xs, ys, color='deepskyblue', s=8, alpha=0.8)
+    ellipse = patches.Ellipse(
+        (size / 2, size / 2),
+        width=0.65 * size * 2,
+        height=0.35 * size * 2,
         edgecolor='black',
         facecolor='none',
-        linewidth=2
+        linewidth=1.2,
+        linestyle='--'
     )
-    emission_ax.add_patch(ellipse_patch)
+    ax3.add_patch(ellipse)
+    placeholder.pyplot(fig3)
 
-    # Platzhalter für die Animation
-    plot_placeholder = st.empty()
+    st.markdown("**🟦 Mehr Punkte = heißer Bereich, weniger Punkte = kalter Bereich**")
 
-    for i in range(300):
-        x, y = np.random.randint(0, size, 2)
-        if np.random.rand() < activity[x, y] / np.max(activity):
-            emission_ax.plot(y, x, 'o', color='dodgerblue', alpha=0.5, markersize=4)
-
-        if i % 10 == 0:
-            plot_placeholder.pyplot(emission_fig)
-        time.sleep(0.01)
-
-    # Finale Darstellung
-    plot_placeholder.pyplot(emission_fig)
+# Echte Bilddaten hochladen
+st.subheader("🖼️ Echtes Szintigramm hochladen (optional)")
+uploaded_file = st.file_uploader("Bilddatei (PNG, JPG) auswählen", type=["png", "jpg", "jpeg"])
+if uploaded_file:
+    image = Image.open(uploaded_file)
+    st.image(image, caption="Hochgeladenes echtes Szintigramm", use_column_width=True)
 
 st.markdown("---")
-st.info("Diese Simulation dient der Lehre und veranschaulicht vereinfacht die Abläufe einer Schilddrüsen-Szintigraphie.")
+st.info("Diese Simulation dient der Lehre und veranschaulicht vereinfacht die Abläufe einer Schilddrüsenszintigraphie. Keine diagnostische Anwendung.")
