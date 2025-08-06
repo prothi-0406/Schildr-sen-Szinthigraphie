@@ -1,4 +1,4 @@
-# Schilddrüsenszintigraphie – Überarbeitete Version nach Wunsch
+# Schilddrüsenszintigraphie
 
 import streamlit as st
 import numpy as np
