@@ -20,8 +20,8 @@ Diese Simulation zeigt wichtige Abläufe einer Schilddrüsenszintigraphie:
 """)
 
 # Radiopharmakon-Auswahl
-pharmakon = st.selectbox("Radiopharmakon auswählen:", ["Technetium-99m", "Jod-123"])
-halbwertszeit = {"Technetium-99m": 6.01, "Jod-123": 13.2}[pharmakon]
+pharmakon = st.selectbox("Radiopharmakon auswählen:", ["Technetium-99m", "Iod-123"])
+halbwertszeit = {"Technetium-99m": 6.01, "Iod-123": 13.2}[pharmakon]
 st.info(f"Halbwertszeit von **{pharmakon}**: **{halbwertszeit} Stunden**")
 
 # Zerfallskurve – in MBq
