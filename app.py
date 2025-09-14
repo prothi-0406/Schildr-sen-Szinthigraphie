@@ -139,8 +139,8 @@ if st.button("Emissionen anzeigen"):
     emission_ax.add_patch(ellipse)
     plot_placeholder.pyplot(emission_fig)
 
-# Bild-Upload (optional)
-st.subheader("🖼️ Echtes Szintigramm hochladen (optional)")
+# Bild-Upload
+st.subheader("🖼️ Echtes Szintigramm hochladen")
 uploaded_file = st.file_uploader("Bilddatei (PNG, JPG)", type=["png", "jpg", "jpeg"])
 
 if uploaded_file:
