@@ -135,8 +135,8 @@ if st.button("Emissionen anzeigen"):
             # Kleinere Ellipse um die Punkte
             ellipse = patches.Ellipse(
                 (size / 2, size / 2),
-                width=0.9 * size,
-                height=0.55 * size,
+                width=0.75 * size,
+				height=0.45 * size,
                 edgecolor='black',
                 facecolor='none',
                 linewidth=1.2,
