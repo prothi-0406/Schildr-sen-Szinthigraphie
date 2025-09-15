@@ -92,13 +92,39 @@ if st.button("Emissionen anzeigen"):
     xs = []
     ys = []
 
-    for i in range(500):
-        x, y = np.random.randint(0, size, 2)
-        if ellipse_mask[x, y] and np.random.rand() < activity[x, y] / 80:
-            xs.append(y)
-            ys.append(x)
+    # Mehr Punkte
+    for i in range(5000):
 
-        if i % 20 == 0:
+        # Pathologische Verteilung
+        if pathologie == "Autonomes Adenom (heißer Knoten)":
+            if np.random.rand() < 0.5:  # 50% aus Hotspot
+                x = np.random.randint(45, 55)
+                y = np.random.randint(40, 60)
+            else:
+                x, y = np.random.randint(0, size, 2)
+        elif pathologie == "Kalter Knoten":
+            # Weniger Punkte aus dem Knoten-Bereich
+            while True:
+                x, y = np.random.randint(0, size, 2)
+                if not (45 <= x < 55 and 40 <= y < 60):
+                    break
+        elif pathologie == "M. Basedow (diffus heiß)":
+            # Überall etwas erhöhte Wahrscheinlichkeit
+            x, y = np.random.randint(0, size, 2)
+            if np.random.rand() < 0.2:
+                x = int(np.random.normal(loc=size/2, scale=size*0.25))
+                y = int(np.random.normal(loc=size/2, scale=size*0.25))
+        else:
+            # Normale Verteilung
+            x, y = np.random.randint(0, size, 2)
+
+        if 0 <= x < size and 0 <= y < size:
+            if ellipse_mask[x, y] and np.random.rand() < activity[x, y] / 80:
+                xs.append(y)
+                ys.append(x)
+
+        # Häufigeres Updaten
+        if i % 100 == 0:
             emission_ax.clear()
             emission_ax.set_xlim(0, size)
             emission_ax.set_ylim(0, size)
@@ -149,4 +175,3 @@ if uploaded_file:
 
 st.markdown("---")
 st.info("Diese Simulation dient der Lehre und veranschaulicht vereinfacht die Abläufe einer Schilddrüsenszintigraphie. Keine diagnostische Anwendung.")
-
