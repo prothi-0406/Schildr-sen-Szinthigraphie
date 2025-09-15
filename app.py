@@ -92,30 +92,30 @@ if st.button("Emissionen anzeigen"):
     xs = []
     ys = []
 
-    # Mehr Punkte
-    for i in range(5000):
+    total_points = 5000
+    total_duration = 30  # Sekunden
+    delay = total_duration / total_points
+
+    for i in range(total_points):
 
         # Pathologische Verteilung
         if pathologie == "Autonomes Adenom (heißer Knoten)":
-            if np.random.rand() < 0.5:  # 50% aus Hotspot
+            if np.random.rand() < 0.5:
                 x = np.random.randint(45, 55)
                 y = np.random.randint(40, 60)
             else:
                 x, y = np.random.randint(0, size, 2)
         elif pathologie == "Kalter Knoten":
-            # Weniger Punkte aus dem Knoten-Bereich
             while True:
                 x, y = np.random.randint(0, size, 2)
                 if not (45 <= x < 55 and 40 <= y < 60):
                     break
         elif pathologie == "M. Basedow (diffus heiß)":
-            # Überall etwas erhöhte Wahrscheinlichkeit
             x, y = np.random.randint(0, size, 2)
             if np.random.rand() < 0.2:
                 x = int(np.random.normal(loc=size/2, scale=size*0.25))
                 y = int(np.random.normal(loc=size/2, scale=size*0.25))
         else:
-            # Normale Verteilung
             x, y = np.random.randint(0, size, 2)
 
         if 0 <= x < size and 0 <= y < size:
@@ -124,7 +124,7 @@ if st.button("Emissionen anzeigen"):
                 ys.append(x)
 
         # Häufigeres Updaten
-        if i % 100 == 0:
+        if i % 100 == 0 or i == total_points - 1:
             emission_ax.clear()
             emission_ax.set_xlim(0, size)
             emission_ax.set_ylim(0, size)
@@ -132,10 +132,11 @@ if st.button("Emissionen anzeigen"):
             emission_ax.set_title("Simulierte Gamma-Emissionen")
             emission_ax.scatter(xs, ys, color='cyan', s=10, alpha=0.7)
 
+            # Kleinere Ellipse um die Punkte
             ellipse = patches.Ellipse(
                 (size / 2, size / 2),
-                width=0.65 * size * 2,
-                height=0.38 * size * 2,
+                width=0.9 * size,
+                height=0.55 * size,
                 edgecolor='black',
                 facecolor='none',
                 linewidth=1.2,
@@ -143,7 +144,8 @@ if st.button("Emissionen anzeigen"):
             )
             emission_ax.add_patch(ellipse)
             plot_placeholder.pyplot(emission_fig)
-            time.sleep(0.01)
+
+        time.sleep(delay)  # gleichmäßiges Auftauchen über 30 Sekunden
 
     # Finales Bild
     emission_ax.clear()
@@ -155,8 +157,8 @@ if st.button("Emissionen anzeigen"):
 
     ellipse = patches.Ellipse(
         (size / 2, size / 2),
-        width=0.65 * size * 2,
-        height=0.38 * size * 2,
+        width=0.9 * size,
+        height=0.55 * size,
         edgecolor='black',
         facecolor='none',
         linewidth=1.2,
@@ -175,3 +177,4 @@ if uploaded_file:
 
 st.markdown("---")
 st.info("Diese Simulation dient der Lehre und veranschaulicht vereinfacht die Abläufe einer Schilddrüsenszintigraphie. Keine diagnostische Anwendung.")
+
