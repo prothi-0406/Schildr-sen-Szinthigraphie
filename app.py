@@ -132,11 +132,11 @@ if st.button("Emissionen anzeigen"):
             emission_ax.set_title("Simulierte Gamma-Emissionen")
             emission_ax.scatter(xs, ys, color='cyan', s=10, alpha=0.7)
 
-            # Kleinere Ellipse um die Punkte
+            # Noch kleinere Ellipse um die Punkte
             ellipse = patches.Ellipse(
                 (size / 2, size / 2),
                 width=0.75 * size,
-				height=0.45 * size,
+                height=0.45 * size,
                 edgecolor='black',
                 facecolor='none',
                 linewidth=1.2,
@@ -157,8 +157,8 @@ if st.button("Emissionen anzeigen"):
 
     ellipse = patches.Ellipse(
         (size / 2, size / 2),
-        width=0.9 * size,
-        height=0.55 * size,
+        width=0.75 * size,
+        height=0.45 * size,
         edgecolor='black',
         facecolor='none',
         linewidth=1.2,
