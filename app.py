@@ -1,186 +1,152 @@
-import time
+# Schilddrüsenszintigraphie
+
+import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import streamlit as st
-from PIL import Image, ImageOps
+import time
+from PIL import Image
 
-# --- Page setup ---
-st.set_page_config(page_title="Schilddrüsen-Szinti (Simulation)", page_icon="🧪", layout="centered")
-st.title("🧪 Simulierte Gamma-Emissionen (Schilddrüsenszintigraphie)")
+# App-Konfiguration
+st.set_page_config(page_title="Schilddrüsenszintigraphie", layout="wide")
+st.title("🧪 Schilddrüsenszintigraphie – Simulation")
 
-# --- Sidebar controls ---
-st.sidebar.header("Parameter")
-size = st.sidebar.slider("Bildgröße (px)", 200, 1000, 600, step=50)
-n_points_base = st.sidebar.slider("Basismenge Emissionen (wird intern ×4)", 100, 20000, 3000, step=100)
-steps = st.sidebar.slider("Animationsschritte", 1, 100, 30)
-point_size = st.sidebar.slider("Punktgröße", 1, 20, 8)
-alpha = st.sidebar.slider("Transparenz", 0.1, 1.0, 0.7, step=0.05)
-animate = st.sidebar.checkbox("Animation abspielen", True)
+st.markdown("""
+Diese Simulation zeigt wichtige Abläufe einer Schilddrüsenszintigraphie:
 
-pathology = st.sidebar.selectbox(
-    "Pathologischer Zustand",
-    [
-        "Physiologisch (normal)",
-        "Heißer Knoten (autonomes Adenom)",
-        "Kalter Knoten",
-        "Struma diffusa",
-        "Hashimoto (inhomogen)"
-    ],
-    index=0
-)
+- 💊 Aufnahme des Radiopharmakons
+- 🧬 Radioaktiver Zerfall
+- 📸 Bildentstehung durch Gamma-Kamera
+""")
 
-# --- Ellipsen-/Organ-Parameter (vereinfachtes Organmodell) ---
-cx, cy = size / 2, size / 2
-a_base = 0.65 * size   # Halbachse x
-b_base = 0.38 * size   # Halbachse y
+# Radiopharmakon-Auswahl
+pharmakon = st.selectbox("Radiopharmakon auswählen:", ["Technetium-99m", "Iod-123"])
+halbwertszeit = {"Technetium-99m": 6.01, "Iod-123": 13.2}[pharmakon]
+st.info(f"Halbwertszeit von **{pharmakon}**: **{halbwertszeit} Stunden**")
 
-# Bei Struma diffusa Organ etwas vergrößern
-if pathology == "Struma diffusa":
-    a = a_base * 1.15
-    b = b_base * 1.15
-else:
-    a = a_base
-    b = b_base
+# Zerfallskurve – in MBq
+st.subheader("🧬 Zerfall des Radiopharmakons in MBq")
+A0 = st.slider("Anfangsaktivität [MBq]", 70, 150, 100, step=10)
+zeit = st.slider("Simulationszeitraum (h)", 6, 48, 24, step=6)
+t = np.linspace(0, zeit, 200)
+A = A0 * np.exp(-np.log(2) * t / halbwertszeit)
 
-rng = np.random.default_rng(42)
+fig1, ax1 = plt.subplots()
+ax1.plot(t, A, color='darkgreen', label="Aktivität [MBq]")
+ax1.set_xlabel("Zeit [h]")
+ax1.set_ylabel("Aktivität [MBq]")
+ax1.set_ylim(0, 150)  # Fixe Y-Achse
+ax1.set_title("Exponentialzerfall")
+ax1.grid(True)
+ax1.legend()
+st.pyplot(fig1)
 
-# --- Hilfsfunktionen ---
-def uniform_points_in_ellipse(n, cx, cy, a, b, rng):
-    """Gleichverteilte Punkte innerhalb einer Ellipse (polar, r = sqrt(U))."""
-    theta = rng.uniform(0, 2*np.pi, n)
-    r = np.sqrt(rng.uniform(0, 1, n))
-    x = cx + a * r * np.cos(theta)
-    y = cy + b * r * np.sin(theta)
-    return x, y
+# Pathologie-Auswahl
+st.subheader("🧠 Pathologisches Muster")
+pathologie = st.selectbox("Pathologischer Zustand:", [
+    "Normale Schilddrüse",
+    "Autonomes Adenom (heißer Knoten)",
+    "Kalter Knoten",
+    "M. Basedow (diffus heiß)"
+])
 
-def gaussian(x, y, mx, my, sx, sy):
-    return np.exp(-0.5 * (((x - mx) / sx) ** 2 + ((y - my) / sy) ** 2))
+# Schilddrüsenform und Aktivität
+size = 100
+X, Y = np.meshgrid(np.linspace(-1, 1, size), np.linspace(-1, 1, size))
+ellipse_mask = ((X**2)/(0.7**2) + (Y**2)/(0.4**2)) < 1
 
-def in_ellipse_mask(x, y, cx, cy, a, b):
-    return ((x - cx)**2) / (a**2) + ((y - cy)**2) / (b**2) <= 1.0
+activity = np.zeros((size, size))
+activity[ellipse_mask] = np.random.normal(loc=20, scale=4, size=np.sum(ellipse_mask))
 
-def pathology_weight(x, y, cx, cy, a, b, label):
-    """
-    Liefert Gewichte für die Auswahl (höher = mehr Punkte).
-    Modelliert Normalverteilung (2 Lappen) + Pathologie-spezifische Modulation.
-    """
-    # Basis: zwei Lappen
-    lobe_offset = 0.22 * a
-    lobe_sigma = 0.35 * a
-    base = 0.6 * (
-        gaussian(x, y, cx - lobe_offset, cy, lobe_sigma, 0.6 * b) +
-        gaussian(x, y, cx + lobe_offset, cy, lobe_sigma, 0.6 * b)
-    )
-    base += 0.4  # Grundniveau
+# Pathologie-Simulation
+if pathologie == "Autonomes Adenom (heißer Knoten)":
+    activity[45:55, 40:60] += 60
+elif pathologie == "Kalter Knoten":
+    activity[45:55, 40:60] -= 18
+elif pathologie == "M. Basedow (diffus heiß)":
+    activity[ellipse_mask] += 25
 
-    if label == "Physiologisch (normal)":
-        w = base
+activity = np.clip(activity, 0, None)
 
-    elif label == "Heißer Knoten (autonomes Adenom)":
-        hk_cx = cx + 0.22 * a
-        hk_cy = cy + 0.05 * b
-        w = base + 1.8 * gaussian(x, y, hk_cx, hk_cy, 0.18 * a, 0.18 * b)
+# Szintigramm-Darstellung
+st.subheader("📍 Simuliertes Szintigramm")
+detected = np.clip(activity + np.random.normal(0, 4, (size, size)), 0, None)
 
-    elif label == "Kalter Knoten":
-        ck_cx = cx + 0.22 * a
-        ck_cy = cy - 0.02 * b
-        cold = gaussian(x, y, ck_cx, ck_cy, 0.18 * a, 0.18 * b)
-        w = base * (1.0 - 0.85 * cold)  # lokal stark reduziert
+fig2, ax2 = plt.subplots()
+im = ax2.imshow(detected, cmap="plasma", interpolation="nearest", vmin=0, vmax=60)  # Feste Skala
+plt.colorbar(im, ax=ax2, label="Detektierte Strahlung (a.u.)")
+ax2.set_title(f"Simuliertes Szintigramm – {pathologie}")
+ax2.axis("off")
+st.pyplot(fig2)
 
-    elif label == "Struma diffusa":
-        noise = rng.normal(0.0, 0.05, size=x.shape)
-        w = 0.9 + noise + 0.2 * base
+# Gamma-Emissionen
+st.subheader("💥 Simulierte Gamma-Emissionen")
+	
+if st.button("Emissionen anzeigen"):
+    emission_fig, emission_ax = plt.subplots()
+    emission_ax.set_xlim(0, size)
+    emission_ax.set_ylim(0, size)
+    emission_ax.axis("off")
+    plot_placeholder = st.empty()
 
-    elif label == "Hashimoto (inhomogen)":
-        w = 0.6 * base
-        rng_state = np.random.default_rng(123)
-        for _ in range(7):
-            mx = cx + rng_state.uniform(-0.28*a, 0.28*a)
-            my = cy + rng_state.uniform(-0.2*b, 0.2*b)
-            sx = rng_state.uniform(0.10*a, 0.20*a)
-            sy = rng_state.uniform(0.10*b, 0.20*b)
-            sign = rng_state.choice([+1.0, -1.0])  # heiß/kalt-Flecken
-            w += 0.9 * sign * gaussian(x, y, mx, my, sx, sy)
-    else:
-        w = base
+    xs = []
+    ys = []
 
-    # Außerhalb der Ellipse auf 0
-    w = np.where(in_ellipse_mask(x, y, cx, cy, a, b), w, 0.0)
-    # Keine negativen/Null-Gewichte
-    w = np.clip(w, 0.001, None)
-    return w
+    for i in range(500):
+        x, y = np.random.randint(0, size, 2)
+        if ellipse_mask[x, y] and np.random.rand() < activity[x, y] / 80:
+            xs.append(y)
+            ys.append(x)
 
-def sample_weighted_in_ellipse(n_final, cx, cy, a, b, label, rng):
-    """
-    Wählt exakt n_final Punkte proportional zu pathology_weight.
-    """
-    n_cand = max(n_final * 3, 20000)
-    x_cand, y_cand = uniform_points_in_ellipse(n_cand, cx, cy, a, b, rng)
-    w = pathology_weight(x_cand, y_cand, cx, cy, a, b, label)
-    if np.all(w <= 0):
-        return uniform_points_in_ellipse(n_final, cx, cy, a, b, rng)
-    p = w / w.sum()
-    idx = rng.choice(len(x_cand), size=n_final, replace=False, p=p)
-    return x_cand[idx], y_cand[idx]
+        if i % 20 == 0:
+            emission_ax.clear()
+            emission_ax.set_xlim(0, size)
+            emission_ax.set_ylim(0, size)
+            emission_ax.axis("off")
+            emission_ax.set_title("Simulierte Gamma-Emissionen")
+            emission_ax.scatter(xs, ys, color='cyan', s=10, alpha=0.7)
 
-# --- IMMER 4× so viele Punkte ---
-n_points = n_points_base * 4
+            ellipse = patches.Ellipse(
+                (size / 2, size / 2),
+                width=0.65 * size * 2,
+                height=0.38 * size * 2,
+                edgecolor='black',
+                facecolor='none',
+                linewidth=1.2,
+                linestyle='--'
+            )
+            emission_ax.add_patch(ellipse)
+            plot_placeholder.pyplot(emission_fig)
+            time.sleep(0.01)
 
-# --- Punkte generieren (pathologie-konsistent) ---
-xs, ys = sample_weighted_in_ellipse(n_points, cx, cy, a, b, pathology, rng)
+    # Finales Bild
+    emission_ax.clear()
+    emission_ax.set_xlim(0, size)
+    emission_ax.set_ylim(0, size)
+    emission_ax.axis("off")
+    emission_ax.set_title("Simulierte Gamma-Emissionen – final")
+    emission_ax.scatter(xs, ys, color='cyan', s=10, alpha=0.7)
 
-# --- Plot-Placeholder ---
-plot_placeholder = st.empty()
-
-def render_frame(x_show, y_show, final=False):
-    fig, ax = plt.subplots(figsize=(6, 6), dpi=150)
-    ax.set_xlim(0, size)
-    ax.set_ylim(0, size)
-    ax.axis("off")
-    title = f"Simulierte Gamma-Emissionen – {pathology}"
-    if final:
-        title += " (final)"
-    ax.set_title(title)
-
-    # Punkte
-    ax.scatter(x_show, y_show, s=point_size, alpha=alpha)
-
-    # Organ-Kontur
     ellipse = patches.Ellipse(
-        (cx, cy),
-        width=2*a,
-        height=2*b,
+        (size / 2, size / 2),
+        width=0.65 * size * 2,
+        height=0.38 * size * 2,
         edgecolor='black',
         facecolor='none',
         linewidth=1.2,
         linestyle='--'
     )
-    ax.add_patch(ellipse)
+    emission_ax.add_patch(ellipse)
+    plot_placeholder.pyplot(emission_fig)
 
-    plot_placeholder.pyplot(fig, use_container_width=True)
-    plt.close(fig)
-
-# --- Animation / Finale Darstellung ---
-if animate and steps > 1:
-    for i in range(1, steps + 1):
-        k = int(np.ceil(i * len(xs) / steps))
-        render_frame(xs[:k], ys[:k], final=(i == steps))
-        time.sleep(0.02)
-else:
-    render_frame(xs, ys, final=True)
-
-# --- Bild-Upload ---
-st.markdown("---")
+# Bild-Upload
 st.subheader("🖼️ Echtes Szintigramm hochladen")
 uploaded_file = st.file_uploader("Bilddatei (PNG, JPG)", type=["png", "jpg", "jpeg"])
 
 if uploaded_file:
     image = Image.open(uploaded_file)
-    image = ImageOps.exif_transpose(image)  # Drehung nach EXIF
-    to_gray = st.checkbox("Als Graustufen anzeigen", value=True)
-    image_disp = image.convert("L") if to_gray else image
-    st.image(image_disp, caption="Hochgeladenes Szintigramm", use_column_width=True)
+    st.image(image, caption="Hochgeladenes Szintigramm", use_column_width=True)
 
 st.markdown("---")
 st.info("Diese Simulation dient der Lehre und veranschaulicht vereinfacht die Abläufe einer Schilddrüsenszintigraphie. Keine diagnostische Anwendung.")
+
