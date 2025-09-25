@@ -73,7 +73,7 @@ st.subheader("📍 Simuliertes Szintigramm")
 detected = np.clip(activity + np.random.normal(0, 4, (size, size)), 0, None)
 
 fig2, ax2 = plt.subplots()
-im = ax2.imshow(detected, cmap="plasma", interpolation="nearest", vmin=0, vmax=60)  # Feste Skala
+im = ax2.imshow(detected, cmap="jet", interpolation="nearest", vmin=0, vmax=60)  # Feste Skala
 plt.colorbar(im, ax=ax2, label="Detektierte Strahlung (a.u.)")
 ax2.set_title(f"Simuliertes Szintigramm – {pathologie}")
 ax2.axis("off")
