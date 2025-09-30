@@ -14,9 +14,9 @@ st.title("🧪 Schilddrüsenszintigraphie – Simulation")
 st.markdown("""
 Diese Simulation zeigt wichtige Abläufe einer Schilddrüsenszintigraphie:
 
-- 💊 Aufnahme des Radiopharmakons
-- 🧬 Radioaktiver Zerfall
-- 📸 Bildentstehung durch Gamma-Kamera
+- 💊 Aufnahme des Radiopharmakons  
+- 🧬 Radioaktiver Zerfall  
+- 📸 Bildentstehung durch Gamma-Kamera  
 """)
 
 # Radiopharmakon-Auswahl
@@ -50,7 +50,7 @@ pathologie = st.selectbox("Pathologischer Zustand:", [
     "M. Basedow (diffus heiß)"
 ])
 
-# Schilddrüsenform und Aktivität
+# Schilddrüsenform und Grundaktivität
 size = 100
 X, Y = np.meshgrid(np.linspace(-1, 1, size), np.linspace(-1, 1, size))
 ellipse_mask = ((X**2)/(0.7**2) + (Y**2)/(0.4**2)) < 1
@@ -58,31 +58,38 @@ ellipse_mask = ((X**2)/(0.7**2) + (Y**2)/(0.4**2)) < 1
 activity = np.zeros((size, size))
 activity[ellipse_mask] = np.random.normal(loc=20, scale=4, size=np.sum(ellipse_mask))
 
-# Pathologie-Simulation
+# Pathologiespezifische Anpassungen (angepasst an das Bild)
 if pathologie == "Autonomes Adenom (heißer Knoten)":
-    activity[45:55, 40:60] += 60
-elif pathologie == "Kalter Knoten":
-    activity[45:55, 40:60] -= 18
-elif pathologie == "M. Basedow (diffus heiß)":
-    activity[ellipse_mask] += 25
+    # zentraler Hotspot innerhalb der Ellipse
+    activity[45:55, 40:60] += 80
 
+elif pathologie == "Kalter Knoten":
+    # gleiche Lage wie heißer Knoten, aber stark vermindert
+    # zuerst erhöhe ganzes Areal, dann in Knoten gezielt absenken
+    activity[ellipse_mask] += 10  # leicht erhöhte Hintergrundaktivität
+    activity[45:55, 40:60] = activity[45:55, 40:60] * 0.1  # kalter Bereich nur 10 % der umgebenden Aktivität
+
+elif pathologie == "M. Basedow (diffus heiß)":
+    # gleichmäßig diffus erhöhter Hintergrund
+    activity[ellipse_mask] += 40
+
+# Clippen (keine negativen Werte)
 activity = np.clip(activity, 0, None)
 
-# Szintigramm-Darstellung
+# Szintigramm-Darstellung mit realitätsnahem Farbverlauf
 st.subheader("📍 Simuliertes Szintigramm")
 detected = np.clip(activity + np.random.normal(0, 4, (size, size)), 0, None)
 
 fig2, ax2 = plt.subplots()
-# 👉 Farbskala auf "turbo" geändert (realitätsnäher als jet)
-im = ax2.imshow(detected, cmap="turbo", interpolation="nearest", vmin=0, vmax=60)
+# Farbverlauf angelehnt an medizinische Szintigrafiebilder
+im = ax2.imshow(detected, cmap="nipy_spectral", interpolation="nearest", vmin=0, vmax=80)
 plt.colorbar(im, ax=ax2, label="Detektierte Strahlung (a.u.)")
 ax2.set_title(f"Simuliertes Szintigramm – {pathologie}")
 ax2.axis("off")
 st.pyplot(fig2)
 
-# Gamma-Emissionen
+# Gamma-Emissionen (wie gehabt)
 st.subheader("💥 Simulierte Gamma-Emissionen")
-	
 if st.button("Emissionen anzeigen"):
     emission_fig, emission_ax = plt.subplots()
     emission_ax.set_xlim(0, size)
@@ -92,52 +99,24 @@ if st.button("Emissionen anzeigen"):
 
     xs = []
     ys = []
+    for i in range(500):
+        x, y = np.random.randint(0, size, 2)
+        if ellipse_mask[x, y] and np.random.rand() < activity[x, y] / np.max(activity):
+            xs.append(y)
+            ys.append(x)
 
-    total_points = 5000
-    total_duration = 30  # Sekunden
-    delay = total_duration / total_points
-
-    for i in range(total_points):
-
-        # Pathologische Verteilung
-        if pathologie == "Autonomes Adenom (heißer Knoten)":
-            if np.random.rand() < 0.5:
-                x = np.random.randint(45, 55)
-                y = np.random.randint(40, 60)
-            else:
-                x, y = np.random.randint(0, size, 2)
-        elif pathologie == "Kalter Knoten":
-            while True:
-                x, y = np.random.randint(0, size, 2)
-                if not (45 <= x < 55 and 40 <= y < 60):
-                    break
-        elif pathologie == "M. Basedow (diffus heiß)":
-            x, y = np.random.randint(0, size, 2)
-            if np.random.rand() < 0.2:
-                x = int(np.random.normal(loc=size/2, scale=size*0.25))
-                y = int(np.random.normal(loc=size/2, scale=size*0.25))
-        else:
-            x, y = np.random.randint(0, size, 2)
-
-        if 0 <= x < size and 0 <= y < size:
-            if ellipse_mask[x, y] and np.random.rand() < activity[x, y] / 80:
-                xs.append(y)
-                ys.append(x)
-
-        # Häufigeres Updaten
-        if i % 100 == 0 or i == total_points - 1:
+        if i % 20 == 0:
             emission_ax.clear()
             emission_ax.set_xlim(0, size)
             emission_ax.set_ylim(0, size)
             emission_ax.axis("off")
             emission_ax.set_title("Simulierte Gamma-Emissionen")
-            emission_ax.scatter(xs, ys, color='cyan', s=10, alpha=0.7)
+            emission_ax.scatter(xs, ys, color='deepskyblue', s=8, alpha=0.8)
 
-            # Noch kleinere Ellipse um die Punkte
             ellipse = patches.Ellipse(
                 (size / 2, size / 2),
-                width=0.75 * size,
-                height=0.45 * size,
+                width=0.65 * size * 2,
+                height=0.35 * size * 2,
                 edgecolor='black',
                 facecolor='none',
                 linewidth=1.2,
@@ -145,21 +124,19 @@ if st.button("Emissionen anzeigen"):
             )
             emission_ax.add_patch(ellipse)
             plot_placeholder.pyplot(emission_fig)
+            time.sleep(0.01)
 
-        time.sleep(delay)  # gleichmäßiges Auftauchen über 30 Sekunden
-
-    # Finales Bild
+    # Finale Anzeige
     emission_ax.clear()
     emission_ax.set_xlim(0, size)
     emission_ax.set_ylim(0, size)
     emission_ax.axis("off")
     emission_ax.set_title("Simulierte Gamma-Emissionen – final")
-    emission_ax.scatter(xs, ys, color='cyan', s=10, alpha=0.7)
-
+    emission_ax.scatter(xs, ys, color='deepskyblue', s=8, alpha=0.8)
     ellipse = patches.Ellipse(
         (size / 2, size / 2),
-        width=0.75 * size,
-        height=0.45 * size,
+        width=0.65 * size * 2,
+        height=0.35 * size * 2,
         edgecolor='black',
         facecolor='none',
         linewidth=1.2,
@@ -168,10 +145,9 @@ if st.button("Emissionen anzeigen"):
     emission_ax.add_patch(ellipse)
     plot_placeholder.pyplot(emission_fig)
 
-# Bild-Upload
+# Bild-Upload (optional)
 st.subheader("🖼️ Echtes Szintigramm hochladen")
 uploaded_file = st.file_uploader("Bilddatei (PNG, JPG)", type=["png", "jpg", "jpeg"])
-
 if uploaded_file:
     image = Image.open(uploaded_file)
     st.image(image, caption="Hochgeladenes Szintigramm", use_column_width=True)
