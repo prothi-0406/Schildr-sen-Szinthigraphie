@@ -73,7 +73,8 @@ st.subheader("📍 Simuliertes Szintigramm")
 detected = np.clip(activity + np.random.normal(0, 4, (size, size)), 0, None)
 
 fig2, ax2 = plt.subplots()
-im = ax2.imshow(detected, cmap="jet", interpolation="nearest", vmin=0, vmax=60)  # Feste Skala
+# 👉 Farbskala auf "turbo" geändert (realitätsnäher als jet)
+im = ax2.imshow(detected, cmap="turbo", interpolation="nearest", vmin=0, vmax=60)
 plt.colorbar(im, ax=ax2, label="Detektierte Strahlung (a.u.)")
 ax2.set_title(f"Simuliertes Szintigramm – {pathologie}")
 ax2.axis("off")
@@ -177,4 +178,3 @@ if uploaded_file:
 
 st.markdown("---")
 st.info("Diese Simulation dient der Lehre und veranschaulicht vereinfacht die Abläufe einer Schilddrüsenszintigraphie. Keine diagnostische Anwendung.")
-
